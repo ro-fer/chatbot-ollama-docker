@@ -1,0 +1,9 @@
+services:
+  chatbot:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./templates:/app/templates
+      - ./static:/app/static
+    restart: unless-stopped
