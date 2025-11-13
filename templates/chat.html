@@ -1,39 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ChatBot</title>
-    <style>
-        body { font-family: Arial; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .chat-container { border: 1px solid #ccc; padding: 20px; height: 400px; overflow-y: auto; }
-        .message { margin: 10px 0; padding: 10px; border-radius: 10px; }
-        .user { background: #007bff; color: white; text-align: right; }
-        .bot { background: #f1f1f1; text-align: left; }
-        input { width: 70%; padding: 10px; }
-        button { padding: 10px 20px; }
-    </style>
+    <title>ChatBot con Ollama</title>
+    <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <h1>🤖 ChatBot - Proyecto Final</h1>
-    <div class="chat-container" id="chat">
-        <div class="message bot">¡Hola! Soy tu chatbot ! Pregúntame algo.</div>
+    <div class="header">
+        <h1>🤖 ChatBot con Ollama</h1>
+        <p>Proyecto Final - Docker + IA Local</p>
     </div>
-    <input type="text" id="input" placeholder="Escribe tu mensaje...">
-    <button onclick="sendMessage()">Enviar</button>
+    
+    <div class="chat-container" id="chat">
+        <div class="message bot">
+            ¡Hola! Soy tu chatbot con inteligencia artificial local. 
+            ¿En qué puedo ayudarte?
+        </div>
+    </div>
+    
+    <div class="input-container">
+        <input type="text" id="input" placeholder="Escribe tu mensaje..." autocomplete="off">
+        <button onclick="sendMessage()">Enviar</button>
+    </div>
+    
+    <div class="status" id="status">
+        Conectado a Ollama local
+    </div>
 
     <script>
+        const chat = document.getElementById('chat');
+        const input = document.getElementById('input');
+        const status = document.getElementById('status');
+
         async function sendMessage() {
-            const input = document.getElementById('input');
             const message = input.value.trim();
-            
             if (!message) return;
-            
-            const chat = document.getElementById('chat');
-            chat.innerHTML += `<div class="message user">${message}</div>`;
-            
+
+            // Agregar mensaje del usuario
+            addMessage(message, 'user');
             input.value = '';
-            chat.scrollTop = chat.scrollHeight;
             
-            // Llamar al backend
+            // Mostrar "escribiendo..."
+            const typingMsg = addMessage('Escribiendo...', 'bot');
+            
             try {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
@@ -42,18 +50,41 @@
                 });
                 
                 const data = await response.json();
-                chat.innerHTML += `<div class="message bot">${data.response}</div>`;
-                chat.scrollTop = chat.scrollHeight;
+                
+                // Remover "escribiendo..." y agregar respuesta real
+                typingMsg.remove();
+                
+                if (data.success) {
+                    addMessage(data.response, 'bot');
+                    status.textContent = '✓ Respuesta recibida';
+                } else {
+                    addMessage(`Error: ${data.error}`, 'bot');
+                    status.textContent = '✗ Error en la respuesta';
+                }
                 
             } catch (error) {
-                chat.innerHTML += `<div class="message bot">Error: ${error}</div>`;
+                typingMsg.remove();
+                addMessage('Error de conexión con el servidor', 'bot');
+                status.textContent = '✗ Error de conexión';
             }
         }
-        
+
+        function addMessage(text, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            chat.appendChild(messageDiv);
+            chat.scrollTop = chat.scrollHeight;
+            return messageDiv;
+        }
+
         // Enviar con Enter
-        document.getElementById('input').addEventListener('keypress', function(e) {
+        input.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') sendMessage();
         });
+
+        // Focus en el input al cargar
+        input.focus();
     </script>
 </body>
 </html>
