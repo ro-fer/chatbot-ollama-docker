@@ -4,8 +4,9 @@ import os
 
 app = Flask(__name__)
 
-# URL de Ollama (local en desarrollo, remoto en producción)
-OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://ollama:11434')
+# URL de llama-swap (OpenAI-compatible API)
+LLM_URL = os.getenv('LLM_URL', 'http://llama-swap:8090')
+LLM_MODEL = os.getenv('LLM_MODEL', 'qwen2.5-coder:32b')
 
 @app.route('/')
 def home():
@@ -16,28 +17,33 @@ def chat():
     try:
         data = request.json
         pregunta = data.get('prompt', '').strip()
-        
+
         if not pregunta:
             return jsonify({'error': 'Escribe un mensaje'}), 400
-        
-        # Llamar a Ollama
-        respuesta = requests.post(f'{OLLAMA_URL}/api/generate', json={
-            'model': 'llama2',
-            'prompt': f"Responde en español de manera útil: {pregunta}",
-            'stream': False
-        }, timeout=30)
-        
+
+        # Llamar a llama-swap usando API compatible con OpenAI
+        respuesta = requests.post(f'{LLM_URL}/v1/chat/completions', json={
+            'model': LLM_MODEL,
+            'messages': [
+                {'role': 'system', 'content': 'Eres un asistente útil. Responde siempre en español.'},
+                {'role': 'user', 'content': pregunta}
+            ],
+            'temperature': 0.7,
+            'max_tokens': 500
+        }, timeout=60)
+
         if respuesta.status_code == 200:
+            resultado = respuesta.json()
             return jsonify({
-                'response': respuesta.json()['response'],
+                'response': resultado['choices'][0]['message']['content'],
                 'success': True
             })
         else:
             return jsonify({
-                'error': f'Ollama error: {respuesta.status_code}',
+                'error': f'LLM error: {respuesta.status_code}',
                 'success': False
             })
-            
+
     except Exception as e:
         return jsonify({
             'error': f'Error: {str(e)}',
@@ -45,7 +51,8 @@ def chat():
         }), 500
 
 if __name__ == '__main__':
-    print(" ChatBot con Ollama iniciado")
-    print(f" Ollama: {OLLAMA_URL}")
-    print("Web: http://localhost:5000")
+    print("🤖 ChatBot con llama.cpp + llama-swap iniciado")
+    print(f"📡 LLM: {LLM_URL}")
+    print(f"🧠 Modelo: {LLM_MODEL}")
+    print("🌐 Web: http://localhost:5000")
     app.run(host='0.0.0.0', port=5000, debug=False)

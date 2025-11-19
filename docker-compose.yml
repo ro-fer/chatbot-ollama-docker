@@ -5,15 +5,31 @@ services:
       - "5000:5000"
     volumes:
       - ./templates:/app/templates
+    environment:
+      - LLM_URL=http://llama-swap:8090
+      - LLM_MODEL=qwen2.5-coder:32b
     restart: unless-stopped
+    depends_on:
+      - llama-swap
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
+  llama-swap:
+    build:
+      context: ./llama-swap-docker
+      dockerfile: Dockerfile
+    image: chatbot/llama-swap
+    container_name: llama-swap
+    command: ["--config", "/config/llama-swap.yaml", "--listen", "0.0.0.0:8090"]
     volumes:
-      - ollama_data:/root/.ollama
+      - /home/lordmanuel/.llama/models:/models:ro
+      - ./llama-swap.yaml:/config/llama-swap.yaml:ro
+    runtime: nvidia
+    ports:
+      - "8090:8090"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
     restart: unless-stopped
-
-volumes:
-  ollama_data:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]

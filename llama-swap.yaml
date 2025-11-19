@@ -1,0 +1,24 @@
+healthCheckTimeout: 300
+logLevel: info
+
+models:
+  "qwen2.5-coder:32b":
+    env:
+      - "CUDA_VISIBLE_DEVICES=0"
+      - "LD_LIBRARY_PATH=/app:$LD_LIBRARY_PATH"
+    proxy: "http://0.0.0.0:11434"
+    ttl: 5
+    cmd: >
+      /app/llama-server
+      --host 0.0.0.0 --port 11434
+      --flash-attn --metrics
+      --slots
+      --model /models/Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf
+      --cache-type-k q4_0 --cache-type-v q4_0
+      --ctx-size 8192
+      --temp 0.6
+      --repeat-penalty 1.05
+      --top-k 40
+      --top-p 0.9
+      -ngl 99 -ngld 99
+      --jinja
